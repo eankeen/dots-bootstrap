@@ -1,0 +1,7 @@
+tests/data
+tests/shared/.virtfs_metadata
+tests/shared/con
+
+*.qcow2
+*.iso
+*.raw
