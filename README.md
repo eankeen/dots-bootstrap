@@ -1,7 +1,6 @@
 # dots-bootstrap
 
-Scripts to bootstrap my installation.
-
+Scripts to bootstrap my installation. (NOT TESTED YET)
 ## Usage
 
 ```sh
