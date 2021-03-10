@@ -1,50 +1,80 @@
 #!/usr/bin/env bash
 set -Eo pipefail
 
+[[ $(basename "$PWD") == 'tests' ]] || {
+	printf "\033[0;31m%s\033[0m\n" "ERROR: Script must be ran in 'tests' directory. Exiting" >&2
+	exit 1
+}
+
 source util.sh
-init_debug
 
 sendkey() (
-		[[ -z $1 ]] && log_error "key: bNo input"
+		[[ -z $1 ]] && log_error "sendkey: no input"
 		netcat 127.0.0.1 55555 <<< "sendkey $1" &
+		# shellcheck disable=SC2181
+		[[ $? -eq 0 ]] || {
+			echo "failed"
+		}
 		sleep 0.08
-		kill "$(jobs -p)"
-) &>/dev/null
-
-# create disk for pre-boostrap script
-create-usb-image() (
-	cd data || die
-
-	local loopDevice
-	[ -f "usb.raw" ] || {
-		log_info 'Creating usb.raw'
-		dd if=/dev/zero of=usb.raw bs=10MiB count=5 >&4 2>&4
-	}
-	loopDevice="$(get_loop_device usb.raw)"
-
-	# format and fill disk with pre-bootstrap script
-	log_info 'Formatting usb.raw loop device'
-	set -x
-	sudo mkfs.fat "$loopDevice"
-	set +x
-
-	mkdir -p 'usb.mountpoint'
-	log_info 'Mounting and copying files to usb.mountpoint'
-	set -x
-	sudo mount "$loopDevice" 'usb.mountpoint'
-	sudo cp -r ../usb/* usb.mountpoint
-	sudo umount 'usb.mountpoint'
-	set +x
+		# shellcheck disable=SC2046
+		kill $(jobs -p)
 )
+
+# create disk for post-boot-1.sh script
+create-usb-image() {
+	cd data || die 'create-usb-image: Could not cd to ./data'
+
+	local -r usbRaw='usb.raw'
+	local usbLoop=
+	local -r usbMount='usb.mountpoint'
+
+	# create raw
+	log_info "Creating $usbRaw"
+	[[ -f "$usbRaw" ]] && { rm "$usbRaw" \
+		|| die "rm $usbRaw failed"; }
+	dd if=/dev/zero of="$usbRaw" bs=10MiB count=5 status=progress || die "dd of=$usbRaw failed"
+
+	# create loop
+	log_info "Creating loop device for $usbRaw"
+	# [[ -e "$usbLoop" ]] && { rm -f "$usbLoop" \
+	# 	|| die "rm $usbLoop failed"; }
+	# ssudo mknod -m 0660 "$usbLoop" b 7 8
+	# ssudo losetup "$PWD/$usbLoop" "$usbRaw"
+
+	ssudo losetup -f "$usbRaw"
+	usbLoop="$(losetup -j "$usbRaw" | cut -d: -f-1)"
+
+	# format loop
+	log_info "Formatting $usbLoop"
+	ssudo mkfs.fat "$usbLoop"
+
+	# copy data
+	log_info "Copying data to $usbRaw via $usbLoop at $usbMount"
+	[[ -d "$usbMount" ]] || mkdir -p "$usbMount" \
+		|| die "mkdir -p $usbMount failed"
+	ssudo mount "$usbLoop" "$usbMount"
+	ssudo cp -r ../usb/* "$usbMount"
+	ssudo umount "$usbMount"
+	rmdir "$usbMount" || die "rmdir $usbMount failed"
+}
+
+trap exit2 SIGALRM
+exit2() {
+	# shellcheck disable=SC2046
+	kill $(jobs -p)
+	exit 1
+}
+
+( kill -n 14 $PPID ) &
 
 main() {
 	(
 		# post-post
-		sleep 4
-		sendkey 'ret'
+		sleep 5
+		sendkey 'ret' || die 'a sendkey kill failed'
 
 		# post-getty
-		sleep 32
+		sleep 37
 		local -ra instructions=(
 			# mount /dev/sda /mnt
 			'mount'
@@ -52,7 +82,7 @@ main() {
 			'.slash'
 			'dev'
 			'.slash'
-			'sda'
+			'vda'
 			'.spc'
 			'.slash'
 			'mnt'
@@ -70,19 +100,18 @@ main() {
 			'sh'
 			'.ret'
 		)
+
 		for keys in "${instructions[@]}"; do
 			[[ ${keys:0:1} == '.' ]] && {
-				sendkey "${keys:1}"
+				sendkey "${keys:1}" || die 'a sendkey kill failed'
 				continue
 			}
 
 			for ((i=0; i<${#keys}; i++)); do
 				local key="${keys:$i:1}"
-				# shellcheck disable=SC2015
 				sleep 0.5
-				sendkey "$key"
+				sendkey "$key" || die 'a sendkey kill failed'
 			done
-
 		done
 	) &
 
@@ -90,7 +119,7 @@ main() {
 		while IFS= read -r line; do
 			echo "sent text: '$line'"
 			if [[ $line = "post-boot-1.sh: DONE" ]]; then
-				echo DONE THING
+				echo 'DONE THING'
 			fi
 		done < <(tail -F ./shared/con)
 	}
@@ -99,20 +128,22 @@ main() {
 		-name 'Arch Linux Install Test' \
 		-uuid "$(uuid)" \
 		-drive if=ide,media=cdrom,file="$(echo ./data/archlinux-*-x86_64.iso)" \
-		-drive if=virtio,media=disk,index=0,file=./data/image.qcow2 \
-		-drive if=ide,media=disk,file="$(get_loop_device ./data/usb.raw)",format=raw \
+		-drive if=ide,media=disk,index=0,file=./data/image.qcow2 \
+		-drive if=virtio,media=disk,file="$(get_loop_device ./data/usb.raw)",format=raw \
 		-monitor tcp:127.0.0.1:55555,server,nowait \
 		-m 2G \
 		-cpu host \
 		-smp 2 \
-		-boot once=d \
+		-boot order=cd,once=d \
 		-machine accel=kvm \
 		-virtfs local,path=./shared,mount_tag=host0,security_model=mapped-file,id=host0 \
-		-pidfile data/qemu.pid \
+		\ # -bios /usr/share/ovmf/x64/OVMF.fd \
+		\ # -pidfile data/qemu.pid \
 	|| {
-		kill "$(jobs -p)"
+		# shellcheck disable=SC2046
+		kill $(jobs -p)
 	}
 }
 
-create-usb-image || die 'create-usb-image failed'
-main
+create-usb-image \
+	&& main

@@ -21,10 +21,13 @@ dot_check() {
 	dot_rm .zprofile
 	dot_rm .mkshrc
 	dot_rm .bash_history
+	dot_rm .pam_environment
+	dot_rm .lesshst
 
 	dot_check .gnupg
 	dot_check .pulse-cookie
 	dot_check .scala_history_jline3
+	dot_check .elementary
 } 2>/dev/null
 
 # directories existence as a prerequisite for usage

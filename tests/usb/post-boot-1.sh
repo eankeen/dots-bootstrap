@@ -1,13 +1,26 @@
 #!/usr/bin/env bash
 set -ue
 
+die() {
+	log_error "${*-'die: '}. Exiting"
+	exit 1
+}
+
+log_error() {
+	printf "\033[0;31m%s\033[0m\n" "ERROR: $*" >&2
+}
+
+trap exit_immediately ERR
+exit_immediately() {
+	die 'Approached unhandled failure exit code'
+}
+
 # drive to install to
-# (the one we setup with virtio in start.sh)
-drive="/dev/vda"
+drive="/dev/sdb"
 
 # mountpoint utilized to install OS / chroot into
 # (arbitrary)
-mnt="/mnt2"
+mnt="/mnt-new-os"
 
 # mount and format disks
 mkdir -p "$mnt"
@@ -31,7 +44,7 @@ host0  /shared  9p  trans=virtio,access=any,version=9p2000.L,msize=1000000,X-mou
 EOF
 
 # install bootloader grub in chroot
-arch-chroot "$mnt" "/bin/bash" <<-EOF
+arch-chroot "$mnt" '/bin/bash' <<-EOF
 	pacman -Sy --noconfirm grub
 	grub-install --target=i386-pc --bootloader-id GRUB-BOOT "$drive"
 	mount host0

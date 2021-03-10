@@ -42,14 +42,12 @@ main() {
 
 	# prompt basic variables
 	if [ -z "$XDG_CONFIG_HOME" ]; then
-		# shellcheck disable=SC2016
 		echo 'Value for $XDG_CONFIG_HOME?'
 		read -rei "$XDG_CONFIG_HOME"
 		XDG_CONFIG_HOME="$REPLY"
 	fi
 
 	if [ -z "$XDG_DATA_HOME" ]; then
-		# shellcheck disable=SC2016
 		echo 'Value for $XDG_DATA_HOME?'
 		read -rei "$XDG_DATA_HOME"
 		XDG_DATA_HOME="$REPLY"
