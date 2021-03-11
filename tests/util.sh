@@ -46,7 +46,7 @@ init_debug() {
 }
 
 reset-shared() {
-	rm -r ./shared/dots-bootstrap
+	[ -e ./shared/dots-bootstrap ] && rm -r ./shared/dots-bootstrap
 	mkdir ./shared/dots-bootstrap
 	cp -r ../lib ./shared/dots-bootstrap
 	cp ../dots-bs.sh ./shared/dots-bootstrap

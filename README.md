@@ -5,7 +5,26 @@ Scripts to bootstrap my installation. (NOT TESTED YET)
 ## Usage
 
 ```sh
-curl --proto '=https' --tlsv1.2 -sSL- "https://raw.githubusercontent.com/eankeen/dotty-bootstrap/tree/master/pre-bootstrap.sh" | bash
+# download
+curl --proto '=https' --tlsv1.2 -LO- "https://raw.githubusercontent.com/eankeen/dotty-bootstrap/tree/master/pre-bootstrap.sh"
+chmod +x pre-bootstrap.sh
+
+# create user
+./pre-bootstrap.sh
+
+# configure user
+su - "$user"
+pre-bootstrap.sh
+
+# modify / ensure PATH, XDG_CONFIG_HOME, XDG_DATA_HOME
+source pre-bootstrap.sh
+
+# start bootstrap
+dots-bs bootstrap
+
+# cleanup
+rm pre-bootstrap.sh
+cd
 ```
 
 ## What it does

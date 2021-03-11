@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 set -euxEo pipefail
 
-# setup
+#
+# ─── UTIL ───────────────────────────────────────────────────────────────────────
+#
+
 log_info() { printf "\033[0;34m%s\033[0m\n" "INFO: $*"; }
 log_error() { printf "\033[0;31m%s\033[0m\n" "ERROR: $*" >&2; }
 trap_int() { log_error 'Received SIGINT. Exiting'; exit 1; }
@@ -9,6 +12,9 @@ trap_err() { log_error 'Approached unhandled failure exit code. Exiting'; exit 1
 trap trap_int INT
 trap trap_err ERR
 
+#
+# ─── INSTALL OPERATING SYSTEM ───────────────────────────────────────────────────
+#
 
 # drive to install to
 drive="/dev/sda"
@@ -29,19 +35,18 @@ mount "${drive}2" "$mnt/boot"
 # install base Arch
 pacstrap "$mnt" base linux-lts linux-firmware
 
-# generate fstab
+# generate / modify fstab
 genfstab -U "$mnt" > "$mnt/etc/fstab"
-
-# modify fstab
-cat <<'EOF' >> "$mnt/etc/fstab"
-host0  /shared  9p  trans=virtio,access=any,version=9p2000.L,msize=1000000,X-mount.mkdir=0755  0  0
+cat <<-EOF >> "$mnt/etc/fstab"
+	host0  /shared  9p  trans=virtio,access=any,version=9p2000.L,msize=1000000,X-mount.mkdir=0755  0  0
 EOF
 
-# start post-boot-2 on second startup
+# write service that we enable in the chroot
 cat <<-EOF >> "$mnt/etc/systemd/system/post-boot-2.service"
 	[Unit]
 	Description=Post Boot 2 Service Auto Start
 	After=shared.mount
+	After=network.target
 	ConditionDirectoryNotEmpty=/shared
 	ConditionPathIsMountPoint=/shared
 	#StandardInput=tty
@@ -57,9 +62,8 @@ cat <<-EOF >> "$mnt/etc/systemd/system/post-boot-2.service"
 	WantedBy=multi-user.target
 EOF
 
-
-# install bootloader grub in chroot
-# same password (same as pre-bootstrap.sh's ENV_DEV_password)
+# make system bootable with GRUB
+# same password (same as pre-bootstrap.sh's global_dev_password)
 declare -r password="password"
 arch-chroot "$mnt" '/bin/bash' <<-EOF
 	# grub
@@ -79,6 +83,10 @@ arch-chroot "$mnt" '/bin/bash' <<-EOF
 
 	echo 'EXITING CHROOT'
 EOF
+
+#
+# ─── CLEANUP ────────────────────────────────────────────────────────────────────
+#
 
 <<< "post-boot-1.sh: DONE" tee -a "$mnt/shared/con"
 echo 'REBOOTING'

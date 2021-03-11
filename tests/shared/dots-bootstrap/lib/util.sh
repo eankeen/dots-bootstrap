@@ -37,6 +37,10 @@ function log_info() {
 	printf "\033[0;34m%s\033[0m\n" "INFO: $*"
 }
 
+function log_warn() {
+	printf "\033[1;33m%s\033[0m\n" "WARN: $*" >&2
+}
+
 function log_error() {
 	printf "\033[0;31m%s\033[0m\n" "ERROR: $*" >&2
 }
