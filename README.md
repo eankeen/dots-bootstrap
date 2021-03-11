@@ -1,6 +1,7 @@
 # dots-bootstrap
 
 Scripts to bootstrap my installation. (NOT TESTED YET)
+
 ## Usage
 
 ```sh
@@ -48,5 +49,4 @@ Automated testing script to ensure bootstrap was successfull
 
 #### TODO
 
-- ensure image.qcow2 actually has gpt/mbr structs and isn't just a file system
-- hook up post-boot to launch /shared/post-boot-2.sh (almost)
+- psot-boot-2.sh

@@ -8,24 +8,60 @@ set -Eo pipefail
 
 source util.sh
 
+
+# ------------------------ helpers ----------------------- #
+# sends keys to qemu, which forwards them to VM
 sendkey() (
 		[[ -z $1 ]] && log_error "sendkey: no input"
 		netcat 127.0.0.1 55555 <<< "sendkey $1" &
-		# shellcheck disable=SC2181
-		[[ $? -eq 0 ]] || {
-			echo "failed"
-		}
 		sleep 0.08
 		# shellcheck disable=SC2046
 		kill $(jobs -p)
-)
+) >/dev/null
+
+
+# ------------------------- main ------------------------- #
+reset-files() {
+	mountpoint usb.mountpoint >/dev/null 2>&1 &&{
+		sudo umount usb.mountpoint
+		rm -rf usb.mountpoint ||:
+	}
+
+	rm ./data/image.raw ||:
+	rm ./data/image.qcow2 ||:
+	rm ./data/usb.raw ||:
+
+	reset-shared
+}
+
+# create disk (actual image we install arch to)
+# we create a raw disk because sgdisk cannot operate on qcow2 images
+create-disk-image() {
+	log_info 'Creating image.raw'
+	qemu-img create \
+		-f "raw" \
+		'image.raw' \
+		'20G'
+
+	sgdisk --clear 'image.raw'
+	sgdisk --new 1::+1MiB 'image.raw'
+	sgdisk --typecode 1:EF02 'image.raw'
+	sgdisk --new 2::+1GiB 'image.raw'
+	sgdisk --largest-new=0 'image.raw'
+
+	log_info 'Creating image.qemu'
+	qemu-img convert \
+		-f "raw" \
+		-O "qcow2" \
+		'image.raw' \
+		'image.qcow2'
+}
 
 # create disk for post-boot-1.sh script
+declare usbLoop=
 create-usb-image() {
-	cd data || die 'create-usb-image: Could not cd to ./data'
-
 	local -r usbRaw='usb.raw'
-	local usbLoop=
+	# usbLoop
 	local -r usbMount='usb.mountpoint'
 
 	# create raw
@@ -57,15 +93,6 @@ create-usb-image() {
 	ssudo umount "$usbMount"
 	rmdir "$usbMount" || die "rmdir $usbMount failed"
 }
-
-trap exit2 SIGALRM
-exit2() {
-	# shellcheck disable=SC2046
-	kill $(jobs -p)
-	exit 1
-}
-
-( kill -n 14 $PPID ) &
 
 main() {
 	(
@@ -115,35 +142,29 @@ main() {
 		done
 	) &
 
-	coproc {
-		while IFS= read -r line; do
-			echo "sent text: '$line'"
-			if [[ $line = "post-boot-1.sh: DONE" ]]; then
-				echo 'DONE THING'
-			fi
-		done < <(tail -F ./shared/con)
-	}
-
-	qemu-system-x86_64 \
+	sudo qemu-system-x86_64 \
 		-name 'Arch Linux Install Test' \
 		-uuid "$(uuid)" \
 		-drive if=ide,media=cdrom,file="$(echo ./data/archlinux-*-x86_64.iso)" \
-		-drive if=ide,media=disk,index=0,file=./data/image.qcow2 \
-		-drive if=virtio,media=disk,file="$(get_loop_device ./data/usb.raw)",format=raw \
+		-drive if=ide,media=disk,file=./data/image.qcow2 \
+		-drive if=virtio,media=disk,file="$usbLoop",format=raw \
+		-virtfs local,path=./shared,mount_tag=host0,security_model=mapped-file,id=host0 \
 		-monitor tcp:127.0.0.1:55555,server,nowait \
 		-m 2G \
 		-cpu host \
 		-smp 2 \
 		-boot order=cd,once=d \
 		-machine accel=kvm \
-		-virtfs local,path=./shared,mount_tag=host0,security_model=mapped-file,id=host0 \
-		\ # -bios /usr/share/ovmf/x64/OVMF.fd \
-		\ # -pidfile data/qemu.pid \
 	|| {
 		# shellcheck disable=SC2046
 		kill $(jobs -p)
 	}
 }
 
+reset-files
+
+cd ./data || die 'create-usb-image: Could not cd to ./data'
 create-usb-image \
+	&& create-disk-image \
+	&& cd .. \
 	&& main

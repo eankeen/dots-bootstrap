@@ -1,25 +1,19 @@
 #!/usr/bin/env bash
-set -ue
+set -euxEo pipefail
 
-die() {
-	log_error "${*-'die: '}. Exiting"
-	exit 1
-}
+# setup
+log_info() { printf "\033[0;34m%s\033[0m\n" "INFO: $*"; }
+log_error() { printf "\033[0;31m%s\033[0m\n" "ERROR: $*" >&2; }
+trap_int() { log_error 'Received SIGINT. Exiting'; exit 1; }
+trap_err() { log_error 'Approached unhandled failure exit code. Exiting'; exit 1; }
+trap trap_int INT
+trap trap_err ERR
 
-log_error() {
-	printf "\033[0;31m%s\033[0m\n" "ERROR: $*" >&2
-}
-
-trap exit_immediately ERR
-exit_immediately() {
-	die 'Approached unhandled failure exit code'
-}
 
 # drive to install to
-drive="/dev/sdb"
+drive="/dev/sda"
 
 # mountpoint utilized to install OS / chroot into
-# (arbitrary)
 mnt="/mnt-new-os"
 
 # mount and format disks
@@ -43,35 +37,50 @@ cat <<'EOF' >> "$mnt/etc/fstab"
 host0  /shared  9p  trans=virtio,access=any,version=9p2000.L,msize=1000000,X-mount.mkdir=0755  0  0
 EOF
 
-# install bootloader grub in chroot
-arch-chroot "$mnt" '/bin/bash' <<-EOF
-	pacman -Sy --noconfirm grub
-	grub-install --target=i386-pc --bootloader-id GRUB-BOOT "$drive"
-	mount host0
-
-	echo 'EXITING CHROOT'
-EOF
-
 # start post-boot-2 on second startup
-cat <<-EOF >> /etc/systemd/system/post-boot-2.service
+cat <<-EOF >> "$mnt/etc/systemd/system/post-boot-2.service"
 	[Unit]
 	Description=Post Boot 2 Service Auto Start
 	After=shared.mount
+	ConditionDirectoryNotEmpty=/shared
+	ConditionPathIsMountPoint=/shared
+	#StandardInput=tty
+	#TTYPath=/dev/tty1
+	#TTYReset=yes
+	#TTYVHangup=yes
 
 	[Service]
 	Type=oneshot
 	ExecStart=/shared/post-boot-2.sh
-	ConditionDirectoryNotEmpty=/shared
-	ConditionPathIsMountPoint=/shared
 
 	[Install]
 	WantedBy=multi-user.target
 EOF
 
-systemctl daemon-reload
-systemctl enable post-boot-2.service
+
+# install bootloader grub in chroot
+# same password (same as pre-bootstrap.sh's ENV_DEV_password)
+declare -r password="password"
+arch-chroot "$mnt" '/bin/bash' <<-EOF
+	# grub
+	pacman -Sy --noconfirm grub
+	grub-install --target=i386-pc "$drive"
+	grub-mkconfig -o /boot/grub/grub.cfg
+
+	# for post-boot-1.sh tee -a "mnt/shared/con"
+	mount host0
+
+	# post-boot-2
+	systemctl daemon-reload
+	systemctl enable post-boot-2.service
+
+	# change password
+	printf "%s\n%s" "$password" "$password" | passwd
+
+	echo 'EXITING CHROOT'
+EOF
 
 <<< "post-boot-1.sh: DONE" tee -a "$mnt/shared/con"
-
-echo REBOOTING2
-# reboot
+echo 'REBOOTING'
+sleep 3
+reboot

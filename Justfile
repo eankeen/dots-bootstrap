@@ -1,16 +1,13 @@
-test-setup:
-	cd tests && ./setup.sh
+test-download:
+	cd tests && ./download.sh
 
-test-reset:
-	cd tests/data && { \
-		mountpoint usb.mountpoint >/dev/null 2>&1 \
-			&& sudo umount usb.mountpoint \
-			&& rm -rf usb.mountpoint; \
-		rm image.qcow2 ||:; \
-		rm usb.raw ||:; \
-	}
-
-test: test-reset test-setup
+test-reset-shared:
+	#!/usr/bin/env bash
+	set -euxEo pipefail
+	cd tests
+	. ./util.sh
+	reset-shared
+test:
 	cd tests && ./start.sh
 
 test-monitor:

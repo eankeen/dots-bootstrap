@@ -10,3 +10,35 @@
 # EOF
 # set +x
 # [ "$(blkid -o value -s TYPE "$loopDevice")" == vfat ] || {
+# helpers
+# get_loop_device() {
+# 	[[ -f $1 ]] || die 'file for $1 in get_loop_device must exist'
+
+# 	if [[ -z $(losetup -j "$1") ]]; then
+# 		losetup -fL --show "$1"
+# 	else
+# 		losetup -j "$1" | cut -d: -f-1
+# 	fi
+# }
+
+# trap exit2 SIGALRM
+# exit2() {
+# 	# shellcheck disable=SC2046
+# 	kill $(jobs -p)
+# 	exit 1
+# }
+# coproc {
+	# 	while IFS= read -r line; do
+	# 		echo "sent text: '$line'"
+	# 		if [[ $line = "post-boot-1.sh: DONE" ]]; then
+	# 			echo 'DONE THING'
+	# 		fi
+	# 	done < <(tail -F ./shared/con)
+	# } &
+
+# su --login --shell "$(command -v bash)" --command '{
+# 	DEV= /shared/dots-bootstrap/pre-bootstrap.sh
+
+# 	echo "START SHELL"
+# 	"$(command -v bash)"
+# }' "$user"

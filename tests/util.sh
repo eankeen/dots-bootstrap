@@ -1,20 +1,11 @@
 # shellcheck shell=bash
 
-# common
+# run
 trap sigint INT
 sigint() {
 	set +x
 	die 'Received SIGINT'
 }
-
-# ensure_cwd() {
-# 	# shellcheck disable=SC2154
-# 	[[ $(basename "$PWD") -ne 'tests' ]] || {
-# 		die 'This script must be ran in the ./tests directory'
-# 	}
-# }
-# ensure_cwd
-
 
 # util
 die() {
@@ -43,12 +34,6 @@ ssudo() {
 	set +x
 }
 
-# ensure() {
-# 	"$@" || {
-# 		die '$* failed'
-# 	}
-# }
-
 init_debug_cleanup() { exec 4>&-; }
 init_debug() {
 	if [[ -v DEBUG ]]; then
@@ -60,13 +45,12 @@ init_debug() {
 	trap init_debug_cleanup EXIT
 }
 
-# helpers
-# get_loop_device() {
-# 	[[ -f $1 ]] || die 'file for $1 in get_loop_device must exist'
-
-# 	if [[ -z $(losetup -j "$1") ]]; then
-# 		losetup -fL --show "$1"
-# 	else
-# 		losetup -j "$1" | cut -d: -f-1
-# 	fi
-# }
+reset-shared() {
+	rm -r ./shared/dots-bootstrap
+	mkdir ./shared/dots-bootstrap
+	cp -r ../lib ./shared/dots-bootstrap
+	cp ../dots-bs.sh ./shared/dots-bootstrap
+	chmod +x ./shared/dots-bootstrap/dots-bs.sh
+	cp ../pre-bootstrap.sh ./shared/dots-bootstrap
+	chmod +x ./shared/dots-bootstrap/pre-bootstrap.sh
+}

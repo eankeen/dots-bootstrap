@@ -8,12 +8,32 @@ set -Eo pipefail
 
 source util.sh
 
-main() {
-	local -r mirror="http://dfw.mirror.rackspace.com"
-	local -r version="2021.03.01"
+# get latest version of ArchLinux
+# ex. output: 2021.03.01
+get-latest-version() {
+	local -r mirror="http://mirror.rackspace.com/archlinux"
+	local -r mirror2="http://arch.mirror.constant.com"
+	local -r mirror3="http://mirrors.evowise.com/archlinux"
+	local -r mirror4="http://arch.mirror.constant.com"
 
-	mkdir ./data/dls
-	cd ./data/dls || die 'Could not cd to ./data/dls'
+	local -r url="$mirror/iso/latest/sha1sums.txt"
+
+	sums="$(curl -sLo- "$url")" || {
+		log_error 'Could not retrieve sha1sums.txt'
+		return 1
+	}
+	sums="$(<<< "$sums" grep '.*.iso$')"
+	sums="${sums#*-}"
+	sums="${sums%-*}"
+	echo "$sums"
+}
+
+main() {
+	local version
+	version="$(get-latest-version)" || die 'Could not retrieve latest version'
+
+	mkdir -p ./data
+	cd ./data || die 'Could not cd to ./data'
 
 	# download and check iso (live usb)
 	{
@@ -38,29 +58,6 @@ main() {
 			curl -O "$mirror/archlinux/iso/$version/md5sums.txt" || die "Could not download checksum file"
 		}
 		md5sum --ignore-missing --check "md5sums.txt" || die "Integrity verification failed"
-	}
-
-	# create disk (actual image we install arch to)
-	rm 'image.raw' 'image.qcow2'
-	{
-		log_info 'Creating image.raw'
-		qemu-img create \
-			-f "raw" \
-			'image.raw' \
-			'20G'
-
-		sgdisk --clear 'image.raw'
-		sgdisk --new 1::+1MiB 'image.raw'
-		sgdisk --typecode 1:EF02 'image.raw'
-		sgdisk --new 2::+1GiB 'image.raw'
-		sgdisk --largest-new=0 'image.raw'
-
-		log_info 'Creating image.qemu'
-		qemu-img convert \
-			-f "raw" \
-			-O "qcow2" \
-			'image.raw' \
-			'image.qcow2'
 	}
 }
 
