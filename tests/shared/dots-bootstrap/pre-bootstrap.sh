@@ -39,8 +39,31 @@ main() {
 	ENV_DEV_password="password"
 
 	if ((EUID == 0)); then
+		[[ -f /etc/systemd/network/90-main.network ]] || {
+			log_info 'Configuring systemd-networkd and systemd-resolved'
+
+			cat > /etc/systemd/network/90-main.network <<-EOF
+			[Match]
+			Name=en*
+
+			[Network]
+			Description=Main Network
+			DHCP=yes
+			DNS=1.1.1.1
+			EOF
+
+			systemctl daemon-reload
+		}
+		systemctl enable --now systemd-networkd.service
+		systemctl enable --now systemd-resolved.service
+		sleep 1
+
+		ping google.com -c1 -W2 &>/dev/null || {
+			die 'ping failed. Ensure you are connected to the internet before continuing'
+		}
+
 		command -v sudo &>/dev/null || {
-			log_info 'Installing sudo...'
+			log_info 'Installing sudo'
 
 			if command -v pacman &>/dev/null; then
 				pacman -S --noconfirm sudo
@@ -60,6 +83,11 @@ main() {
 			groupadd sudo
 		}
 
+		grep -q "$ENV_user" /etc/passwd || {
+			log_info "Ensuring '$ENV_user' user exists"
+			useradd -m "$ENV_user"
+		}
+
 		groups "$ENV_user" | grep -q sudo || {
 			log_info "Ensuring 'sudo' group includes $ENV_user"
 
@@ -72,13 +100,16 @@ main() {
 			>/etc/sudoers.d/sudo-group cat <<< "%sudo ALL=(ALL) ALL"
 		}
 
-		[[ -v DEV ]] && {
-			printf "%s\n%s" "$ENV_DEV_password" "$ENV_DEV_password"| passwd
-		}
+		log_info "Ensure user has a password"
+		if [[ -v DEV ]]; then
+			printf "%s\n%s" "$ENV_DEV_password" "$ENV_DEV_password"| passwd "$ENV_user"
+		else
+			passwd "$ENV_user"
+		fi
 
 		cat <<-EOF
 		Exiting pre-bootstrap.sh...
-		  Remember to do '$(type -P bash)' -l so
+		  Remember to do '$(type -P bash) -l' so
 		  group-user modifications register
 		EOF
 
@@ -90,7 +121,7 @@ main() {
 	[[ -v DEV ]] && <<< "$ENV_DEV_password" sudo --stdin -v
 
 	command -v git &>/dev/null|| {
-		log_info 'Installing git...'
+		log_info 'Installing git'
 
 		if command -v pacman &>/dev/null; then
 			sudo pacman -S --noconfirm git
@@ -121,8 +152,8 @@ main() {
 
 
 	# install shell-installer-bin just for bootstrapping
-	dir="${TEMP:-${TMP:-/tmp}}/dotty-bootstrap"
-	ln -s "$dir" ~/.dotty-bootstrap
+	dir="$HOME/.dotty-bootstrap"
+	mkdir "$dir" || die "Could not mkdir '$dir'"
 	cd "$dir" || die "Could not cd to '$dir'"
 
 	cat <<-EOF > profile
@@ -132,10 +163,10 @@ main() {
 		export PATH="$XDG_DATA_HOME/bm/bin:$PATH"
 	EOF
 
-	mkdir bin
+	mkdir bin || die "Could not mkdir 'bin'"
 	cd bin || die "Could not cd to 'bin'"
 	version="v0.1.0" # TODO: use latest
-	req "https://github.com/eankeen/shell-installer/releases/download/$version/shell_installer"
+	req "https://github.com/eankeen/shell-installer/releases/download/$version/shell-installer"
 
 	# install shell_installer permenantly
 	"$dir/bin/shell_installer" add eankeen/bm
@@ -151,6 +182,6 @@ main() {
 	git clone https://github.com/eankeen/dots .dots
 
 	# cleanup
-	unlink ~/.dotty-bootstrap
+	rm -r "$dir"
 }
 main
