@@ -6,7 +6,7 @@ set -Eo pipefail
 	exit 1
 }
 
-source util.sh
+source scripts/util.sh
 
 # get latest version of ArchLinux
 # ex. output: 2021.03.01

@@ -1,5 +1,5 @@
 test-download:
-	cd tests && ./download.sh
+	cd tests && ./scripts/download.sh
 
 test-reset-shared:
 	#!/usr/bin/env bash
@@ -8,7 +8,7 @@ test-reset-shared:
 	. ./util.sh
 	reset-shared
 test:
-	cd tests && ./start.sh
+	cd tests && ./scripts/start.sh
 
 test-monitor:
 	netcat 127.0.0.1 55555

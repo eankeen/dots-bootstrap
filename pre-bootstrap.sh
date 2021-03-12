@@ -294,7 +294,8 @@ main() {
 	shell_installer remove eankeen/dots-bs || log_warn 'shell_installer remove eankeen/dots-bs failed'
 	shell_installer add eankeen/dots-bs
 
-	# cleanup
+	# ------------------------ cleanup ----------------------- #
+
 	rm -r "$dir"
 }
 

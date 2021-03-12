@@ -6,7 +6,7 @@ set -Eo pipefail
 	exit 1
 }
 
-source util.sh
+source scripts/util.sh
 
 
 # ------------------------ helpers ----------------------- #
