@@ -2,7 +2,6 @@
 
 set -Eo pipefail
 
-declare -r DIR
 # shellcheck disable=SC2164
 DIR="$(dirname "$(cd "$(dirname "$0")"; pwd -P)/$(basename "$0")")"
 
