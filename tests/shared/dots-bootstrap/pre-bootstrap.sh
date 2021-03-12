@@ -14,6 +14,10 @@ log_info() {
 	printf "\033[0;34m%s\033[0m\n" "INFO: $*"
 }
 
+log_warn() {
+	printf "\033[1;33m%s\033[0m\n" "WARN: $*" >&2
+}
+
 log_error() {
 	printf "\033[0;31m%s\033[0m\n" "ERROR: $*" >&2
 }
@@ -294,7 +298,8 @@ main() {
 	shell_installer remove eankeen/dots-bs || log_warn 'shell_installer remove eankeen/dots-bs failed'
 	shell_installer add eankeen/dots-bs
 
-	# cleanup
+	# ------------------------ cleanup ----------------------- #
+
 	rm -r "$dir"
 }
 

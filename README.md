@@ -1,28 +1,66 @@
 # dots-bootstrap
 
-Scripts to bootstrap my installation. (NOT TESTED YET)
+Scripts to bootstrap a fresh operating system and install my dotfiles
+
+## Summary
+
+This repository contains bash scripts that
+
+- Installs programming languages and sets up their environment
+- Installs programs that depend on aforementioned language environments (ex. rust's just, git-delta )
+
+Prerequisites
+
+- Network connection
+- dotty
+- cURL
 
 ## Usage
 
 ```sh
+# --------------------- prereqs --------------------- #
+{
+	# ensure network connection (ex. follows)
+
+	> /etc/systemd/network/90-main.network <<-EOF cat
+		[Match]
+		Name=en*
+
+		[Network]
+		Description=Main Network
+		DHCP=yes
+		DNS=1.1.1.1
+	EOF
+
+	systemctl daemon-reload
+	systemctl enable --now systemd-{network,resolve}d
+}
+
+
+# ---------------- pre-bootstrap.sh ----------------- #
 # download pre-bootstrap.sh
 curl -LO- "https://raw.githubusercontent.com/eankeen/dotty-bootstrap/tree/master/pre-bootstrap.sh"
 chmod +x pre-bootstrap.sh
 
-# create user (as root)
+# run as root
+# setups user, sudo
 ./pre-bootstrap.sh
 
-# configure user, install dots-bs
+# run as user
+# installs shell_installer, dotty, dots
 su - "$user"
-pre-bootstrap.sh
+./pre-bootstrap.sh
 
 # modify PATH; ensure XDG_CONFIG_HOME, XDG_DATA_HOME
 source pre-bootstrap.sh
 
-# start full bootstrap
-dots-bs bootstrap
 
-# cleanup
+# ----------------- dots-bootstrap ------------------ #
+dots-bootstrap bootstrap
+dots-bootstrap install
+
+
+# --------------------- cleanup --------------------- #
 rm pre-bootstrap.sh
 cd
 ```
@@ -34,38 +72,9 @@ cd
 - Sets up network, mountpoints, locales, etc. (pre-bootstrap.sh)
 - Clones dotfiles (pre-bootstrap.sh)
 
-## Process
+## TODO
 
-1. pre-bootstrap.sh
-
-- installs eankeen/bm
-- installs eankeen/shell_installer (requires eankeen/bm)
-- installs eankeen/dot (requires shell_installer)
-
-2. dot.sh bootstrap
-
-## Testing
-
-Automated testing script to ensure bootstrap was successfull
-
-### Testing Process
-
-1. setup.sh
-
-- Download Arch Live ISO
-- Create disk to install Arch onto
-
-2. start.sh
-
-- Recreate disk for automated post-boot-1 instructions
-- Start QEMU
-- Mount disk with local copy of post-boot-1 instructions
-- Do autoamted post-boot-1 instructions
-
-  - Do standard bootstrap process (ex. pre-bootstrap.sh)
-
-  3.  tests.bats
-
-#### TODO
-
-- psot-boot-2.sh
+- ensure bindutils is installled so hostname works
+- go over dots-bootstrap.sh again and make sure to || die things
+- ensure dotty runs properly (needs something like ~/.config/dotty/dotty.toml)
+  - pass in config flag?

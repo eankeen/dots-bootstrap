@@ -1,0 +1,12 @@
+# shellcheck shell=bash
+
+{
+	! hash asdf &>/dev/null \
+	&& [[ ! -d $XDG_DATA_HOME/asdf ]]
+} || {
+	log_info "Installing asdf"
+	git clone https://github.com/asdf-vm/asdf.git "$XDG_DATA_HOME/asdf"
+
+	cd "$XDG_DATA_HOME/asdf" || die "Could not cd to asdf data dir"
+	git switch -c "$(git describe --abbrev=0 --tags)"
+}

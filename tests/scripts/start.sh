@@ -8,95 +8,120 @@ set -Eo pipefail
 
 source scripts/util.sh
 
-
-# ------------------------ helpers ----------------------- #
-# sends keys to qemu, which forwards them to VM
-sendkey() (
-		[[ -z $1 ]] && log_error "sendkey: no input"
-		netcat 127.0.0.1 55555 <<< "sendkey $1" &
-		sleep 0.08
-		# shellcheck disable=SC2046
-		kill $(jobs -p)
-) >/dev/null
-
-
-# ------------------------- main ------------------------- #
-reset-files() {
-	mountpoint usb.mountpoint >/dev/null 2>&1 &&{
-		sudo umount usb.mountpoint
-		rm -rf usb.mountpoint ||:
-	}
-
-	rm ./data/image.raw ||:
-	rm ./data/image.qcow2 ||:
-	rm ./data/usb.raw ||:
-
-	reset-shared
-}
-
-# create disk (actual image we install arch to)
-# we create a raw disk because sgdisk cannot operate on qcow2 images
-create-disk-image() {
-	log_info 'Creating image.raw'
-	qemu-img create \
-		-f "raw" \
-		'image.raw' \
-		'20G'
-
-	sgdisk --clear 'image.raw'
-	sgdisk --new 1::+1MiB 'image.raw'
-	sgdisk --typecode 1:EF02 'image.raw'
-	sgdisk --new 2::+1GiB 'image.raw'
-	sgdisk --largest-new=0 'image.raw'
-
-	log_info 'Creating image.qemu'
-	qemu-img convert \
-		-f "raw" \
-		-O "qcow2" \
-		'image.raw' \
-		'image.qcow2'
-}
-
-# create disk for post-boot-1.sh script
-declare usbLoop=
-create-usb-image() {
-	local -r usbRaw='usb.raw'
-	# usbLoop
-	local -r usbMount='usb.mountpoint'
-
-	# create raw
-	log_info "Creating $usbRaw"
-	[[ -f "$usbRaw" ]] && { rm "$usbRaw" \
-		|| die "rm $usbRaw failed"; }
-	dd if=/dev/zero of="$usbRaw" bs=10MiB count=5 status=progress || die "dd of=$usbRaw failed"
-
-	# create loop
-	log_info "Creating loop device for $usbRaw"
-	# [[ -e "$usbLoop" ]] && { rm -f "$usbLoop" \
-	# 	|| die "rm $usbLoop failed"; }
-	# ssudo mknod -m 0660 "$usbLoop" b 7 8
-	# ssudo losetup "$PWD/$usbLoop" "$usbRaw"
-
-	ssudo losetup -f "$usbRaw"
-	usbLoop="$(losetup -j "$usbRaw" | cut -d: -f-1)"
-
-	# format loop
-	log_info "Formatting $usbLoop"
-	ssudo mkfs.fat "$usbLoop"
-
-	# copy data
-	log_info "Copying data to $usbRaw via $usbLoop at $usbMount"
-	[[ -d "$usbMount" ]] || mkdir -p "$usbMount" \
-		|| die "mkdir -p $usbMount failed"
-	ssudo mount "$usbLoop" "$usbMount"
-	ssudo cp -r ../usb/* "$usbMount"
-	ssudo umount "$usbMount"
-	rmdir "$usbMount" || die "rmdir $usbMount failed"
-}
+#
+# ─── MAIN ───────────────────────────────────────────────────────────────────────
+#
 
 main() {
+	# ---------------------- reset-files --------------------- #
+	{
+		# ensure remains of previous tests do not exist
+
+		mountpoint usb.mountpoint >/dev/null 2>&1 && {
+			sudo umount usb.mountpoint
+			rm -rf usb.mountpoint ||:
+		}
+
+		rm ./data/image.raw ||:
+		rm ./data/image.qcow2 ||:
+		rm ./data/usb.raw ||:
+
+		# copy over files to ./shared (which will be mounted in VM)
+		reset-shared
+	}
+
+	cd ./data || die 'Could not cd to ./data'
+
+
+	# ------------------- create-disk-image ------------------ #
+
+	{
+		# create the disk we install Arch Linux onto. we
+		# first create a raw disk because sgdisk cannot
+		# operate on qcow2 images. since our partition table
+		# layout accords with GPT and we're booting with GRUB, we specify and utilize a bios boot partition (partition type code EF02)
+
+		log_info 'Creating image.raw'
+		qemu-img create \
+			-f "raw" \
+			'image.raw' \
+			'20G'
+
+		sgdisk --clear 'image.raw'
+		sgdisk --new 1::+1MiB 'image.raw'
+		sgdisk --typecode 1:EF02 'image.raw'
+		sgdisk --new 2::+1GiB 'image.raw'
+		sgdisk --largest-new=0 'image.raw'
+
+		log_info 'Creating image.qemu'
+		qemu-img convert \
+			-f "raw" \
+			-O "qcow2" \
+			'image.raw' \
+			'image.qcow2'
+	}
+
+
+	# ------------------- create-usb-image ------------------- #
+
+	declare usbLoop=
+	{
+		# create the usb image that contains the `post-boot-1.sh` script
+		# this could be made better / more efficient with guestfish
+
+		local -r usbRaw='usb.raw'
+		# usbLoop
+		local -r usbMount='usb.mountpoint'
+
+		# create raw
+		log_info "Creating $usbRaw"
+		[[ -f "$usbRaw" ]] && { rm "$usbRaw" \
+			|| die "rm $usbRaw failed"; }
+		dd if=/dev/zero of="$usbRaw" bs=10MiB count=5 status=progress || die "dd of=$usbRaw failed"
+
+		# create loop
+		log_info "Creating loop device for $usbRaw"
+
+		ssudo losetup -f "$usbRaw"
+		usbLoop="$(losetup -j "$usbRaw" | cut -d: -f-1)"
+
+		# format loop
+		log_info "Formatting $usbLoop"
+		ssudo mkfs.fat "$usbLoop"
+
+		# copy data
+		log_info "Copying data to $usbRaw via $usbLoop at $usbMount"
+		[[ -d "$usbMount" ]] || mkdir -p "$usbMount" \
+			|| die "mkdir -p $usbMount failed"
+		ssudo mount "$usbLoop" "$usbMount"
+		ssudo cp -r ../usb/* "$usbMount"
+		ssudo umount "$usbMount"
+		rmdir "$usbMount" || die "rmdir $usbMount failed"
+	}
+
+	cd .. || die 'cd .. failed'
+
+
+	# ---------------------- start qemu ---------------------- #
+
 	(
-		# post-post
+		# before starting qemu (because it takes control of the
+		# tty and blocks), we start a background process that
+		# sends keypresses that automatically mounts and execs
+		# `post-boot-1.sh` on first boot the timing may have
+		# to be adjusted, depending on your computer
+
+		# sends keys to qemu, which forwards them to the VM
+		sendkey() (
+				[[ -z $1 ]] && log_error "sendkey: no input"
+
+				netcat 127.0.0.1 55555 <<< "sendkey $1" &
+				sleep 0.08
+				# shellcheck disable=SC2046
+				kill $(jobs -p)
+		) >/dev/null
+
+		# post-POST
 		sleep 5
 		sendkey 'ret' || die 'a sendkey kill failed'
 
@@ -161,10 +186,4 @@ main() {
 	}
 }
 
-reset-files
-
-cd ./data || die 'create-usb-image: Could not cd to ./data'
-create-usb-image \
-	&& create-disk-image \
-	&& cd .. \
-	&& main
+main "$@"

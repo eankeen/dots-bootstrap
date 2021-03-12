@@ -42,3 +42,8 @@
 # 	echo "START SHELL"
 # 	"$(command -v bash)"
 # }' "$user"
+#sudo groupadd adm, wheel
+# [[ -e "$usbLoop" ]] && { rm -f "$usbLoop" \
+	# 	|| die "rm $usbLoop failed"; }
+	# ssudo mknod -m 0660 "$usbLoop" b 7 8
+	# ssudo losetup "$PWD/$usbLoop" "$usbRaw"

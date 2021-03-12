@@ -25,4 +25,9 @@ log_info "post-boot-2.sh: RUN WITH ROOT"
 log_info "post-boot-2.sh: RUN WITH $global_user"
 sudo --login --user "$global_user" --preserve-env=DEV,global_user "$(type -P bash)" <<-EOF
 	/shared/dots-bootstrap/pre-bootstrap.sh
+
+	source /shared/dots-bootstrap/pre-bootstrap.sh
+
+	/shared/dots-bootstrap/dots-bootstrap.sh bootstrap
+	/shared/dots-bootstrap/dots-bootstrap.sh install
 EOF

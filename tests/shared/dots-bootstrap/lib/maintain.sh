@@ -23,11 +23,14 @@ dot_check() {
 	dot_rm .bash_history
 	dot_rm .pam_environment
 	dot_rm .lesshst
+	dot_rm .gitconfig
 
 	dot_check .gnupg
 	dot_check .pulse-cookie
 	dot_check .scala_history_jline3
 	dot_check .elementary
+	dot_check .old # used in bootstrap.sh
+	dot_check .profile-tmp # used in pre-bootstrap.sh
 } 2>/dev/null
 
 # directories existence as a prerequisite for usage
@@ -43,4 +46,12 @@ dot_check() {
 	m "$XDG_DATA_HOME"/vim/{undo,swap,backup}
 	m "$XDG_DATA_HOME"/nano/backups
 	m "$XDG_DATA_HOME/zsh"
+	m "$XDG_DATA_HOME/X11"
+	[[ -n $SONARLINT_USER_HOME ]] && m "$SONARLINT_USER_HOME"
+	m "$HOME/.history"
 )
+
+# setup links
+ln -s ~/Docs/Programming/repos ~/repos &>/dev/null
+ln -s ~/Docs/Programming/projects ~/projects &>/dev/null
+ln -s ~/Docs/Programming/workspaces ~/workspaces &>/dev/null

@@ -5,7 +5,7 @@ test-reset-shared:
 	#!/usr/bin/env bash
 	set -euxEo pipefail
 	cd tests
-	. ./util.sh
+	. ./scripts/util.sh
 	reset-shared
 test:
 	cd tests && ./scripts/start.sh

@@ -1,0 +1,5 @@
+{
+	"search.exclude": {
+		"**/tests/shared/dots-bootstrap": true
+	}
+}

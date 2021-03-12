@@ -49,8 +49,8 @@ reset-shared() {
 	[ -e ./shared/dots-bootstrap ] && rm -r ./shared/dots-bootstrap
 	mkdir ./shared/dots-bootstrap
 	cp -r ../lib ./shared/dots-bootstrap
-	cp ../dots-bs.sh ./shared/dots-bootstrap
-	chmod +x ./shared/dots-bootstrap/dots-bs.sh
+	cp ../dots-bootstrap.sh ./shared/dots-bootstrap
+	chmod +x ./shared/dots-bootstrap/dots-bootstrap.sh
 	cp ../pre-bootstrap.sh ./shared/dots-bootstrap
 	chmod +x ./shared/dots-bootstrap/pre-bootstrap.sh
 }

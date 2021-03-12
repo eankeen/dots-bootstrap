@@ -1,90 +1,81 @@
 # shellcheck shell=bash
 
+
+# -------------------------- run ------------------------- #
+
+trap sigint INT
+sigint() {
+	set +x
+	die 'Received SIGINT'
+}
+
+
+# -------------------- util functions -------------------- #
+
+req() {
+	curl --proto '=https' --tlsv1.2 -sSLf "$@"
+}
+
+die() {
+	log_error "${*-'die: '}. Exiting"
+	exit 1
+}
+
+log_info() {
+	printf "\033[0;34m%s\033[0m\n" "INFO: $*"
+}
+
+log_warn() {
+	printf "\033[1;33m%s\033[0m\n" "WARN: $*" >&2
+}
+
+log_error() {
+	printf "\033[0;31m%s\033[0m\n" "ERROR: $*" >&2
+}
+
+
 # ------------------- helper functions ------------------- #
-function show_help() {
+
+util_show_help() {
 	cat <<-EOF
 		Usage:
 		    dot.sh [command]
 
 		Commands:
-		    pre-bootstrap
+		    bootstrap
 		        Performs pre-bootstrap operations
 
-		    bootstrap [stage]
+		    install [stage]
 		        Bootstraps dotfiles, optionally add a stage to skip some steps
 
-		    misc
+		    maintenance
 		        Reconciles state
 
-		    info
-		        Prints info
-
 		Examples:
-		    dot.sh bootstrap i_rust
+		    dot.sh bootstrap
+		    dot.sh install i_rust
 	EOF
 }
 
-function die() {
-	log_error "$*"
-	exit 1
-}
 
-function req() {
-	curl --proto '=https' --tlsv1.2 -sSLf "$@"
-}
-
-function log_info() {
-	printf "\033[0;34m%s\033[0m\n" "INFO: $*"
-}
-
-function log_warn() {
-	printf "\033[1;33m%s\033[0m\n" "WARN: $*" >&2
-}
-
-function log_error() {
-	printf "\033[0;31m%s\033[0m\n" "ERROR: $*" >&2
-}
 
 # sources profiles before boostrap
-function source_profile() {
+util_source_profile() {
 	[ -d ~/.dots ] && {
-		set +u
 		source ~/.dots/user/.profile
-		set -u
 		return
 	}
 
-	pushd "$(mktemp -d)" || die "Could not push temp dir"
+	pushd "$(mktemp -d)" || {
+		log_error "Could not push temp dir"
+		return 1
+	}
+
 	req -o temp-profile.sh https://raw.githubusercontent.com/eankeen/dots/main/user/.profile
-	set +u
 	source temp-profile.sh
-	set -u
-}
 
-function pre-check() {
-	ensure() {
-		: "${1:?"Error: check_prerequisites: 'binary' command not passed"}"
-
-		type "$1" >&/dev/null || {
-			die "Error: '$1' not found. Exiting early"
-		}
+	popd || {
+		log_error "Could not popd"
+		return 1
 	}
-
-	[[ $(id -un) = edwin ]] || {
-		die "Error: 'id -un' not 'edwin'. Exiting early"
-	}
-
-	ensure git
-	ensure zip # sdkman
-	ensure make # g
-	ensure pkg-config # starship
-	# todo: the following are packages not binaries. make binaries or do ensurePkg
-	#ensure curl # ghcup
-	#ensure g++ # ghcup
-	ensure gcc # ghcup
-	#ensure gmp # ghcup
-	ensure make # ghcup
-	#ensure ncurses # ghcup
-	ensure realpath # ghcup
-	#ensure xz-utils # ghcup
 }
