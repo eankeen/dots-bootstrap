@@ -6,17 +6,15 @@
 
 # -------------------- ensure network -------------------- #
 
-ping google.com -c1 -W2 &>/dev/null || {
-	die "'ping google.com' failed"
-}
+ensure ping google.com -c1 -W2 &>/dev/null
 
 
 # --------------------- set hostname --------------------- #
 
 read -rp "Choose new hostname: " \
 	-ei "$(</etc/hostname)"
-sudo hostname "$REPLY" || die 'hostname failed'
-sudo tee /etc/hostname <<< "$REPLY" &>/dev/null || die 'tee /etc/hostname failed'
+ensure sudo hostname "$REPLY"
+ensure sudo tee /etc/hostname <<< "$REPLY" &>/dev/null
 
 
 # ----------------------- set hosts ---------------------- #
@@ -34,7 +32,7 @@ grep -qe "$REPLY" /etc/hosts || {
 	END
 
 	read -rp "Check/edit /etc/hosts..." -sn 1
-	sudo "${EDITOR:-${VISUAL:-vim}}" /etc/hosts
+	sudo "${EDITOR:-vim}" /etc/hosts
 }
 
 
@@ -60,7 +58,7 @@ grep -qe '# XDG Desktop Entries' /etc/fstab || {
 	EOF
 
 	read -rp "Check/edit /etc/fstab..." -sn 1
-	sudo "${EDITOR:-${VISUAL:-vim}}" /etc/fstab
+	sudo "${EDITOR:-vim}" /etc/fstab
 }
 
 sudo mount -a || {
@@ -71,27 +69,26 @@ sudo mount -a || {
 
 # ------------------------- date ------------------------- #
 
-sudo timedatectl set-ntp true
-sudo timedatectl set-timezone America/Los_Angeles
-# ln -sf /usr/share/zoneinfo/America/Los_Angeles /etc/localtime
-sudo hwclock --systohc
+ensure sudo timedatectl set-ntp true
+ensure sudo timedatectl set-timezone America/Los_Angeles
+ensure sudo hwclock --systohc || die 'hwclock --systohc failed'
 
 
 # ------------------------ locales ----------------------- #
 
-sudo sed -i 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
-sudo locale-gen
+ensure sudo sed -i 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+ensure sudo locale-gen
 
 
 # ------------------------ groups ------------------------ #
 
-sudo groupadd docker
-sudo groupadd libvirt
-sudo groupadd vboxusers
-sudo groupadd lxd
-sudo groupadd systemd-journal
-sudo groupadd nordvpn
-sudo usermod -aG docker,libvirt,vboxusers,lxd,systemd-journal,nordvpn edwin
+ensure sudo groupadd docker
+ensure sudo groupadd libvirt
+ensure sudo groupadd vboxusers
+ensure sudo groupadd lxd
+ensure sudo groupadd systemd-journal
+ensure sudo groupadd nordvpn
+ensure sudo usermod -aG docker,libvirt,vboxusers,lxd,systemd-journal,nordvpn edwin
 
 # ------------------------ passwd ------------------------ #
 read -rei "${XDG_CONFIG_HOME:-$HOME/.config}"
@@ -122,8 +119,13 @@ read- rp "Root Password (enter to skip): "
 	    email = edwin@kofler.dev
 EOF
 
-[ -d ~/.dots ] || git clone https://github.com/eankeen/dots ~/.dots
-bm uninstall dotty || log_warn "Could not 'bm uninstall dotty'"
+[ -d ~/.dots ] || {
+	git clone https://github.com/eankeen/dots ~/.dots
+	cd dots || die "Could not 'cd dots'"
+	git config --local filter.npmrc-clean.clean "$(pwd)/user/config/npm/npmrc-clean.sh"
+}
+
+bm uninstall dotty || log_warn "Could not 'bm uninstall dotty"
 bm install dotty
 dotty reconcile || {
 	die "Error: Could not apply user dotfiles. Exiting"

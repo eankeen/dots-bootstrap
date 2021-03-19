@@ -55,3 +55,6 @@ dot_check() {
 ln -s ~/Docs/Programming/repos ~/repos &>/dev/null
 ln -s ~/Docs/Programming/projects ~/projects &>/dev/null
 ln -s ~/Docs/Programming/workspaces ~/workspaces &>/dev/null
+
+# vscode save extensions
+code --list-extensions > ~/.dots/state/vscode-extensions.txt
