@@ -75,6 +75,6 @@ cd
 ## TODO
 
 - ensure bindutils is installled so hostname works
-- go over dots-bootstrap.sh again and make sure to || die things
 - ensure dotty runs properly (needs something like ~/.config/dotty/dotty.toml)
   - pass in config flag?
+- expect nodejs, ghcup

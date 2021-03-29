@@ -20,7 +20,7 @@
 		sudo pacman -Syu vlc cmus maim zsh youtube-dl restic rofi trash-cli
 		sudo pacman -Syu nordvpn zip xss-lock man-db man-pages xss-lock
 		sudo pacman -Syu exa bat fzf figlet rsync
-		sudo pacman -Sy inetutils i3 lvm2
+		sudo pacman -Sy inetutils i3 lvm2 lesspipe
 		sudo pacman -Sy linux-lts  linux-lts-docs linux-lts-headers nvidia-lts
 
 		type yay &>/dev/null || (

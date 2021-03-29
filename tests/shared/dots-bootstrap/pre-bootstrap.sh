@@ -22,15 +22,19 @@ log_error() {
 	printf "\033[0;31m%s\033[0m\n" "ERROR: $*" >&2
 }
 
-trap trap_int INT
-trap_int() {
-	die 'Received SIGINT'
+# create traps so long we aren't sourcing
+[[ ${BASH_SOURCE[0]} != "$0" ]] || {
+	trap trap_int INT
+	trap_int() {
+		die 'Received SIGINT'
+	}
+
+	trap trap_err ERR
+	trap_err() {
+		die 'Approached unhandled failure exit code'
+	}
 }
 
-trap trap_err ERR
-trap_err() {
-	die 'Approached unhandled failure exit code'
-}
 
 ensure() {
 	"$@" || die "'$*' failed"
@@ -80,7 +84,7 @@ main() {
 		\`pre-bootstrap.sh\`
 		  - Install git, jq
 		  - Set XDG_CONFIG_HOME, XDG_DATA_HOME
-		  - Install bm, shell_installer, dotty
+		  - Install bm, shell_installer
 		  - Clone eankeen/dots
 		EOF
 		return
@@ -257,9 +261,9 @@ main() {
 
 	# ------------------ setup scratch space ----------------- #
 
-	log_info 'Setting up .dotty-bootstrap folder'
+	log_info 'Setting up .dots-bootstrap folder'
 
-	dir="$HOME/.dotty-bootstrap"
+	dir="$HOME/.dots-bootstrap"
 	[[ -d $dir ]] || mkdir -p "$dir" || die "Could not mkdir '$dir'"
 	cd "$dir" || die "Could not cd to '$dir'"
 

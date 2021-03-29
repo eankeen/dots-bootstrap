@@ -21,6 +21,10 @@ die() {
 	exit 1
 }
 
+ensure() {
+	"$@" || die "'$*' failed"
+}
+
 log_info() {
 	printf "\033[0;34m%s\033[0m\n" "INFO: $*"
 }

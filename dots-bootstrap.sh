@@ -7,7 +7,7 @@ DIR="$(dirname "$(cd "$(dirname "$0")"; pwd -P)/$(basename "$0")")"
 
 ## start ##
 source "$DIR/lib/util.sh"
-
+main
 ((EUID == 0)) && {
 	die "Cannot run as root"
 }

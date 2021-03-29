@@ -4,8 +4,8 @@ if ! [ "$(curl -LsSo- https://edwin.dev)" = "Hello World" ]; then
 		echo "https://edwin.dev OPEN"
 fi
 
-# shellcheck disable=SC2088
 dot_rm() {
+	# shellcheck disable=SC2088
 	rm ~/"$1" && echo "~/$1 removed"
 }
 
@@ -14,7 +14,6 @@ dot_check() {
 	test -e ~/"$1" && echo "~/$1 exists?"
 }
 
-
 {
 	dot_rm .zlogin
 	dot_rm .zshrc
@@ -22,16 +21,27 @@ dot_check() {
 	dot_rm .mkshrc
 	dot_rm .bash_history
 	dot_rm .pam_environment
+	dot_rm .viminfo
 	dot_rm .lesshst
 	dot_rm .gitconfig
+	dot_rm .pulse-cookie
 
 	dot_check .gnupg
-	dot_check .pulse-cookie
 	dot_check .scala_history_jline3
 	dot_check .elementary
 	dot_check .old # used in bootstrap.sh
 	dot_check .profile-tmp # used in pre-bootstrap.sh
+
+	dot_check .ghc # fixed in later releases
 } 2>/dev/null
+
+command -v dash &>/dev/null || {
+	echo "must have dash"
+}
+
+command -v lesspipe.sh &>/dev/null || {
+	echo "must have lesspipe.sh"
+}
 
 # directories existence as a prerequisite for usage
 (
