@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -Eo pipefail
 
+# Finally, this script models what an end user of `dots-bootstrap`
+# would do. The system is already installed, and we follow the README
+# instructions
+
 #
 # ─── UTIL ───────────────────────────────────────────────────────────────────────
 #
@@ -12,7 +16,9 @@ log_error() { printf "\033[0;31m%s\033[0m\n" "ERROR: $*" >&2; }
 # ─── MAIN ───────────────────────────────────────────────────────────────────────
 #
 
-# ensure once
+# this script is executed by start-qemu.sh and start-chroot.sh
+# the latter of which didn't create the following systemd service,
+# so the following will fail on the former
 systemctl disable post-boot-2
 
 # run pre-bootstrap with 'root' and 'edwin'

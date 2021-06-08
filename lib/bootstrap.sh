@@ -67,6 +67,7 @@ ln -sT /storage/data/fonts "$XDG_DATA_HOME/fonts"
 ln -sT /storage/data/gnupg "$XDG_DATA_HOME/gnupg"
 ln -sT /storage/data/ssh ~/.ssh
 ln -sT /storage/vault/rodinia/Steam "$XDG_DATA_HOME/Steam"
+ln -sT /storage/data/mozilla/ ~/.mozilla
 
 # ------------------------- date ------------------------- #
 
@@ -83,6 +84,7 @@ ensure sudo locale-gen
 
 # ------------------------ groups ------------------------ #
 
+# TODO: check /usr/lib/sysgroups.d
 ensure sudo groupadd docker
 ensure sudo groupadd libvirt
 ensure sudo groupadd vboxusers

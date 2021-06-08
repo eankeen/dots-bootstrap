@@ -1,5 +1,9 @@
 # shellcheck shell=bash
 
+check_bin node
+check_bin yarn
+check_bin pnpm
+
 # todo: remove prompt
 hash node &>/dev/null || {
 	log_info "Installing n"
@@ -13,5 +17,6 @@ yarn global add @eankeen/cliflix
 yarn global add npm-check-updates
 yarn global add graphqurl
 yarn global add nb.sh
+yarn global add json5
 
 yarn config set prefix "$XDG_DATA_HOME/yarn"

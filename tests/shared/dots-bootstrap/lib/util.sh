@@ -37,6 +37,19 @@ log_error() {
 	printf "\033[0;31m%s\033[0m\n" "ERROR: $*" >&2
 }
 
+check_bin() {
+	command -v "$1" &>/dev/null || {
+		log_error "Command '$1' NOT installed"
+	}
+}
+
+check_dot() {
+	# shellcheck disable=SC2088
+	[ -e ~/"$1" ] && {
+		log_error "File '$1' EXISTS"
+	}
+}
+
 
 # ------------------- helper functions ------------------- #
 
@@ -52,7 +65,7 @@ util_show_help() {
 		    install [stage]
 		        Bootstraps dotfiles, optionally add a stage to skip some steps
 
-		    maintenance
+		    maintain
 		        Reconciles state
 
 		Examples:

@@ -7,7 +7,7 @@ DIR="$(dirname "$(cd "$(dirname "$0")"; pwd -P)/$(basename "$0")")"
 
 ## start ##
 source "$DIR/lib/util.sh"
-
+main
 ((EUID == 0)) && {
 	die "Cannot run as root"
 }
@@ -31,6 +31,10 @@ bootstrap)
 install)
 	shift
 	source "$DIR/lib/install.sh"
+	;;
+module)
+	shift
+	source "$DIR/lib/module.sh"
 	;;
 maintain)
 	shift

@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euxEo pipefail
 
+# This installs arch on the VM in a similar way in a similar way
+# you would do it manually. There are two notable things.
+# 1. It mounts a 9p drive, which is used to sync the `tests/shared` folder
+#    on the host to `/shared` in the VM.
+# 2. Sets up for `shared/post-boot-2.sh` to be ran when rebooting
+#    into the newly installed system.
+
 #
 # ─── UTIL ───────────────────────────────────────────────────────────────────────
 #
@@ -71,8 +78,8 @@ arch-chroot "$mnt" '/bin/bash' <<-EOF
 	grub-install --target=i386-pc "$drive"
 	grub-mkconfig -o /boot/grub/grub.cfg
 
-	# for post-boot-1.sh tee -a "mnt/shared/con"
-	mount host0
+	# # for post-boot-1.sh tee -a "mnt/shared/con"
+	# mount host0
 
 	# post-boot-2
 	systemctl daemon-reload
@@ -88,7 +95,7 @@ EOF
 # ─── CLEANUP ────────────────────────────────────────────────────────────────────
 #
 
-<<< "post-boot-1.sh: DONE" tee -a "$mnt/shared/con"
+# <<< "post-boot-1.sh: DONE" tee -a "$mnt/shared/con"
 echo 'REBOOTING'
 sleep 3
 reboot

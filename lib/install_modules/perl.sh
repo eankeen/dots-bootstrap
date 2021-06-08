@@ -1,6 +1,9 @@
 # shellcheck shell=bash
 
+check_bin perl
+
 # todo: remove prompt (on unconfigured systems)
+# todo: cleanup
 log_info "Installing perl"
 
 git clone https://github.com/tokuhirom/plenv "${XDG_DATA_HOME:-${HOME}/.local/share}/plenv"

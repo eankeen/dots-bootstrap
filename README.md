@@ -20,8 +20,7 @@ Prerequisites
 ```sh
 # --------------------- prereqs --------------------- #
 {
-	# ensure network connection (ex. follows)
-
+	# ensure network connection (e.g. the following)
 	> /etc/systemd/network/90-main.network <<-EOF cat
 		[Match]
 		Name=en*
@@ -43,7 +42,7 @@ curl -LO- "https://raw.githubusercontent.com/eankeen/dotty-bootstrap/tree/master
 chmod +x pre-bootstrap.sh
 
 # run as root
-# setups user, sudo
+# sets up users, sudo
 ./pre-bootstrap.sh
 
 # run as user
@@ -51,7 +50,7 @@ chmod +x pre-bootstrap.sh
 su - "$user"
 ./pre-bootstrap.sh
 
-# modify PATH; ensure XDG_CONFIG_HOME, XDG_DATA_HOME
+# this modifies PATH; ensure XDG_CONFIG_HOME, XDG_DATA_HOME
 source pre-bootstrap.sh
 
 
@@ -77,4 +76,3 @@ cd
 - ensure bindutils is installled so hostname works
 - ensure dotty runs properly (needs something like ~/.config/dotty/dotty.toml)
   - pass in config flag?
-- expect nodejs, ghcup

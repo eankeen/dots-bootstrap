@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 set -Eo pipefail
 
+# In short, this file uses a downloaded Arch Linux ISO as the base
+# Virtual Machine image, and also mounts the folder containing
+# `tests/usb` (which is exposed as `/dev/sda`) to `/mnt`. It then
+# executes the containing `post-boot-1.sh` script.
+
+# It mounts the folder by emulating keypresses on the command line through running
+# `netcat` on the host machine. QEMU opens a socket, which can have keypress commands
+# sent to it. There is a 37ish second wait time for the keypresses to start happening
+# to account for the VM POST and boot period
+
 [[ $(basename "$PWD") == 'tests' ]] || {
 	printf "\033[0;31m%s\033[0m\n" "ERROR: Script must be ran in 'tests' directory. Exiting" >&2
 	exit 1
@@ -108,7 +118,7 @@ main() {
 		# before starting qemu (because it takes control of the
 		# tty and blocks), we start a background process that
 		# sends keypresses that automatically mounts and execs
-		# `post-boot-1.sh` on first boot the timing may have
+		# `post-boot-1.sh` on first boot. the timing may have
 		# to be adjusted, depending on your computer
 
 		# sends keys to qemu, which forwards them to the VM
@@ -169,7 +179,6 @@ main() {
 
 	sudo qemu-system-x86_64 \
 		-name 'Arch Linux Install Test' \
-		-uuid "$(uuid)" \
 		-drive if=ide,media=cdrom,file="$(echo ./data/archlinux-*-x86_64.iso)" \
 		-drive if=ide,media=disk,file=./data/image.qcow2 \
 		-drive if=virtio,media=disk,file="$usbLoop",format=raw \

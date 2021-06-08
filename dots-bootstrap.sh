@@ -32,6 +32,10 @@ install)
 	shift
 	source "$DIR/lib/install.sh"
 	;;
+module)
+	shift
+	source "$DIR/lib/module.sh"
+	;;
 maintain)
 	shift
 	source "$DIR/lib/maintain.sh"

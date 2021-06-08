@@ -38,23 +38,11 @@ grep -qe "$REPLY" /etc/hosts || {
 
 # --------------------- update fstab --------------------- #
 
-grep -qe '# XDG Desktop Entries' /etc/fstab || {
+grep -qe '# extra' /etc/fstab || {
 	sudo tee -a /etc/fstab >/dev/null <<-EOF
-	# XDG Desktop Entries
+	# extra
 	/dev/fox/stg.files  /storage/edwin  xfs  defaults,relatime,X-mount.mkdir=0755  0  2
-	/storage/edwin/Music  /home/edwin/Music  none  x-systemd.after=/data/edwin,X-mount.mkdir,bind,nofail  0  0
-	/storage/edwin/Pics  /home/edwin/Pics  none  x-systemd.after=/data/edwin,X-mount.mkdir,bind,nofail  0  0
-	/storage/edwin/Vids  /home/edwin/Vids  none  x-systemd.after=/data/edwin,X-mount.mkdir,bind,nofail  0  0
-	/storage/edwin/Dls  /home/edwin/Dls  none  x-systemd.after=/data/edwin,X-mount.mkdir,bind,nofail  0  0
-	/storage/edwin/Docs  /home/edwin/Docs  none  x-systemd.after=/data/edwin,X-mount.mkdir,bind,nofail  0  0
-
-	# Data Bind Mounts
 	/dev/fox/stg.data  /storage/data  reiserfs defaults,X-mount.mkdir  0 0
-	/storage/data/calcurse  /home/edwin/data/calcurse  none  x-systemd.after=/storage/data,X-mount.mkdir,bind,nofail  0 0
-	/storage/data/gnupg  /home/edwin/data/gnupg  none  x-systemd.after=/storage/data,X-mount.mkdir,bind,nofail  0 0
-	/storage/data/fonts  /home/edwin/data/fonts  none x-systemd.after=/storage/data,X-mount.mkdir,bind,nofail  0 0
-	/storage/data/BraveSoftware /home/edwin/config/BraveSoftware  none x-systemd.after=/storage/data,X-mount.mkdir,bind,nofail  0 0
-	/storage/data/ssh /home/edwin/.ssh  none x-systemd.after=/storage/data,X-mount.mkdir,bind,nofail  0 0
 	EOF
 
 	read -rp "Check/edit /etc/fstab..." -sn 1
@@ -66,6 +54,20 @@ sudo mount -a || {
 	[[ -v DEV ]] || exit 1
 }
 
+shopt -q dotglob && was_set=yes
+shopt -u dotglob
+for dir in /storage/edwin/*; do
+	dir="${dir##*/}"
+	ln -sT "/storage/data/$dir" "$HOME/$dir"
+done
+[ "$was_set" = "yes" ] && shopt -s dotglob
+
+ln -sT /storage/data/BraveSoftware "$XDG_CONFIG_HOME/BraveSoftware"
+ln -sT /storage/data/fonts "$XDG_DATA_HOME/fonts"
+ln -sT /storage/data/gnupg "$XDG_DATA_HOME/gnupg"
+ln -sT /storage/data/ssh ~/.ssh
+ln -sT /storage/vault/rodinia/Steam "$XDG_DATA_HOME/Steam"
+ln -sT /storage/data/mozilla/ ~/.mozilla
 
 # ------------------------- date ------------------------- #
 
@@ -82,6 +84,7 @@ ensure sudo locale-gen
 
 # ------------------------ groups ------------------------ #
 
+# TODO: check /usr/lib/sysgroups.d
 ensure sudo groupadd docker
 ensure sudo groupadd libvirt
 ensure sudo groupadd vboxusers
