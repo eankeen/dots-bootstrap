@@ -1,10 +1,6 @@
 #!/usr/bin/env bats
 
-@test "node exists" {
-	[[ command -v node &>/dev/null ]]
-}
-
-@test "symlinks" {
+@test "Symlinks to xdg-user-dirs" {
 	for dir in Dls Docs Music Pics Vids; do
 		[[ -L ~/$dir ]]
 	done

@@ -115,3 +115,17 @@ exts="$(code --list-extensions)"
 if ! [ "$(curl -LsSo- https://edwin.dev)" = "Hello World" ]; then
 		echo "https://edwin.dev OPEN"
 fi
+# shopt -q dotglob && was_set=yes
+# shopt -u dotglob
+# for dir in /storage/edwin/*; do
+# 	dir="${dir##*/}"
+# 	ln -sT "/storage/data/$dir" "$HOME/$dir"
+# done
+# [ "$was_set" = "yes" ] && shopt -s dotglob
+
+# ln -sT /storage/data/BraveSoftware "$XDG_CONFIG_HOME/BraveSoftware"
+# ln -sT /storage/data/fonts "$XDG_DATA_HOME/fonts"
+# ln -sT /storage/data/gnupg "$XDG_DATA_HOME/gnupg"
+# ln -sT /storage/data/ssh ~/.ssh
+# ln -sT /storage/vault/rodinia/Steam "$XDG_DATA_HOME/Steam"
+# ln -sT /storage/data/mozilla/ ~/.mozilla

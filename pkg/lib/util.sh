@@ -64,6 +64,8 @@ util_show_help() {
 
 		    install [stage]
 		        Bootstraps dotfiles, optionally add a stage to skip some steps
+		    module
+		        Does module
 
 		    maintain
 		        Reconciles state

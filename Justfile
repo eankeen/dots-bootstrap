@@ -1,30 +1,32 @@
-# ------------------------ Qemu ------------------------
-# Download required ISO files for VM
-qemu-init:
-	cd tests && ./scripts/init-qemu.sh
+sharedDir := "./tests/shared/dots-bootstrap"
 
-# Deploys the dotfiles on a virtual machine though QEMU
-# Note that you should wait up to 30 seconds for text to
-# automatically perform the installation
-qemu-start sync-shared:
-	cd tests && ./scripts/start-qemu.sh
+alias i := init
 
-# Talk to VM after start
-qemu-monitor:
-	netcat 127.0.0.1 55555
+init:
+	sudo mkosi build
 
-# ----------------------- Chroot -----------------------
-# Populate the rootfs
-chroot-init:
-	cd tests&& ./scripts/init-chroot.sh
 
-# Creates an overlayfs over an Arch file system
-chroot-start sync-shared:
-	cd tests && ./scripts/start-chroot.sh
+sync:
+	rm -rf {{ sharedDir }}
+	mkdir -p {{ sharedDir }}
+	cp -r pkg {{ sharedDir }}
 
-sync-shared:
-	#!/usr/bin/env bash
-	set -euxEo pipefail
-	cd tests
-	. ./scripts/util.sh
-	reset-shared
+	cp scripts/* {{ sharedDir }}
+	cp package.sh {{ sharedDir }}
+
+qemu: sync
+	rm -f ./tests/data/mkosi/writable-image.qcow2
+	qemu-img convert -f raw -O qcow2 ./tests/data/mkosi/image.raw ./tests/data/mkosi/writable-image.qcow2
+	cd tests && bash ./scripts/disk.sh
+
+	qemu-system-x86_64 \
+		-name 'Arch Linux Install Test' \
+		-machine accel=kvm \
+		-smp 2 \
+		-m 2G \
+		-cpu host \
+		-drive if=pflash,format=raw,readonly=on,file=/usr/share/ovmf/x64/OVMF_CODE.fd \
+		-object rng-random,filename=/dev/urandom,id=rng0 \
+		-device virtio-rng-pci,rng=rng0,id=rng-device0 \
+		-drive format=qcow2,if=virtio,file=./tests/data/mkosi/writable-image.qcow2 \
+		-drive format=raw,if=virtio,file=./tests/data/shared.raw

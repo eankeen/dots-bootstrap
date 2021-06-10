@@ -1,6 +1,6 @@
-tests/data
-tests/shared/.virtfs_metadata
-tests/shared/con
+tests/data/
+tests/shared/
+tests/mnt/
 
 *.qcow2
 *.iso
