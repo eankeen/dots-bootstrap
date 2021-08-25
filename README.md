@@ -76,3 +76,4 @@ cd
 - ensure bindutils is installled so hostname works
 - ensure dotty runs properly (needs something like ~/.config/dotty/dotty.toml)
   - pass in config flag?
+- stevemao/awesome-git-addons

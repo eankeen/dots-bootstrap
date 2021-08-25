@@ -5,6 +5,7 @@ check_bin pip
 check_bin poetry
 check_bin pyenv
 check_bin pipx
+check_bin bpython
 
 hash pyenv &>/dev/null || {
 	log_info "Installing pyenv"
