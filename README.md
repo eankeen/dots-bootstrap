@@ -73,7 +73,6 @@ cd
 
 ## TODO
 
-- ensure bindutils is installled so hostname works
 - ensure dotty runs properly (needs something like ~/.config/dotty/dotty.toml)
-  - pass in config flag?
+- pass in config flag for dotty?
 - stevemao/awesome-git-addons

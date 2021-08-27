@@ -10,14 +10,16 @@ if [[ -n $1 ]]; then
 	for module in "${modules[@]}"; do
 		module="${module%.sh}"
 
-		[[ $1 == "$module" ]] && {
+		if [[ $1 == "$module" ]]; then
 			log_info "Executing install_modules/$module.sh"
 			source "$DIR/lib/install_modules/$module.sh"
 			found_module=yes
-		}
+		fi
 	done
 
-	[[ $found_module == no ]] && die "module '$1' not found"
+	if [ "$found_module" == no ]; then
+		die "module '$1' not found"
+	fi
 # if we want to execute all modules
 else
 	for module in "${modules[@]}"; do

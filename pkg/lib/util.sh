@@ -5,7 +5,6 @@
 
 trap sigint INT
 sigint() {
-	set +x
 	die 'Received SIGINT'
 }
 
@@ -17,7 +16,7 @@ req() {
 }
 
 die() {
-	log_error "${*-'die: '}. Exiting"
+	log_error "$1. Exiting"
 	exit 1
 }
 
@@ -26,41 +25,47 @@ ensure() {
 }
 
 log_info() {
-	printf "\033[0;34m%s\033[0m\n" "INFO: $*"
+	printf '%s\n' "$*"
+	# printf "\033[0;34m%s\033[0m\n" "INFO: $*"
 }
 
 log_warn() {
-	printf "\033[1;33m%s\033[0m\n" "WARN: $*" >&2
+	printf '%s\n' "Warn: $*"
+	# printf "\033[1;33m%s\033[0m\n" "WARN: $*" >&2
 }
 
 log_error() {
-	printf "\033[0;31m%s\033[0m\n" "ERROR: $*" >&2
+	# printf '%s\n' "Error: $*"
+	printf "\033[0;31m%s\033[0m\n" "Error: $*" >&2
 }
 
 check_bin() {
-	command -v "$1" &>/dev/null || {
-		log_error "Command '$1' NOT installed"
-	}
+	if command -v "$1" &>/dev/null; then
+		log_warn "Command '$1' NOT installed"
+	fi
 }
 
 check_dot() {
 	# shellcheck disable=SC2088
-	[ -e ~/"$1" ] && {
-		log_error "File '$1' EXISTS"
-	}
+	if [ -e ~/"$1" ]; then
+		log_warn "File '$1' EXISTS"
+	fi
 }
 
 
 # ------------------- helper functions ------------------- #
 
-util_show_help() {
+util.show_help() {
 	cat <<-EOF
 		Usage:
 		    dot.sh [command]
 
 		Commands:
-		    bootstrap
-		        Performs pre-bootstrap operations
+		    bootstrap-system
+		        Bootstraps the system
+
+			bootstrap-user
+			    Bootstraps the current user
 
 		    install [stage]
 		        Bootstraps dotfiles, optionally add a stage to skip some steps
@@ -80,21 +85,21 @@ util_show_help() {
 
 # sources profiles before boostrap
 util_source_profile() {
-	[ -d ~/.dots ] && {
+	if [ -d ~/.dots ]; then
 		source ~/.dots/user/.profile
 		return
-	}
+	fi
 
-	pushd "$(mktemp -d)" || {
+	if ! pushd "$(mktemp -d)"; then
 		log_error "Could not push temp dir"
 		return 1
-	}
+	fi
 
 	req -o temp-profile.sh https://raw.githubusercontent.com/eankeen/dots/main/user/.profile
 	source temp-profile.sh
 
-	popd || {
+	if ! popd; then
 		log_error "Could not popd"
 		return 1
-	}
+	fi
 }
