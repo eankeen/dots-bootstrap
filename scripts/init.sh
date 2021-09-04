@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-
+# TODO
 if ((EUID == 0)); then
 	sed -i -e 's/#Server/Server/g' /etc/pacman.d/mirrorlist
 	pacman -S --noconfirm neovim

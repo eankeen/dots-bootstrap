@@ -1,16 +1,5 @@
 # shellcheck shell=bash
 
-
-# -------------------------- run ------------------------- #
-
-trap sigint INT
-sigint() {
-	die 'Received SIGINT'
-}
-
-
-# -------------------- util functions -------------------- #
-
 req() {
 	curl --proto '=https' --tlsv1.2 -sSLf "$@"
 }
@@ -58,48 +47,20 @@ check_dot() {
 util.show_help() {
 	cat <<-EOF
 		Usage:
-		    dot.sh [command]
+		    dots-bootstrap [command]
 
 		Commands:
-		    bootstrap-system
-		        Bootstraps the system
+		    bootstrap
+		        Bootstraps the current user
 
-			bootstrap-user
-			    Bootstraps the current user
-
-		    install [stage]
-		        Bootstraps dotfiles, optionally add a stage to skip some steps
-		    module
-		        Does module
+		    module [stage]
+		        Bootstraps dotfiles, only for a particular language
 
 		    maintain
-		        Reconciles state
+		        Performs cleanup and ensures various files and symlinks exist
 
 		Examples:
-		    dot.sh bootstrap
-		    dot.sh install i_rust
+		    dots-bootstrap bootstrap
+		    dots-bootstrap module rust
 	EOF
-}
-
-
-
-# sources profiles before boostrap
-util_source_profile() {
-	if [ -d ~/.dots ]; then
-		source ~/.dots/user/.profile
-		return
-	fi
-
-	if ! pushd "$(mktemp -d)"; then
-		log_error "Could not push temp dir"
-		return 1
-	fi
-
-	req -o temp-profile.sh https://raw.githubusercontent.com/eankeen/dots/main/user/.profile
-	source temp-profile.sh
-
-	if ! popd; then
-		log_error "Could not popd"
-		return 1
-	fi
 }

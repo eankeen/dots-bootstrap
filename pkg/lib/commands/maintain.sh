@@ -2,51 +2,75 @@
 
 util_get_file() {
 	if [[ ${1::1} == / ]]; then
-		echo "$1"
+		REPLY="$1"
 	else
-		echo "$HOME/$1"
+		REPLY="$HOME/$1"
 	fi
 }
 
 # ensure file removed
 must_rm() {
-	file="$(util_get_file "$1")"
+	util_get_file "$1"; local file="$REPLY"
 
-	[ -e "$file" ] && rm "$file" && echo "$file REMOVED"
+	if [ -f "$file" ]; then
+		if rm "$file"; then
+			printf '%s\n' "$file REMOVED"
+		fi
+	fi
+}
+
+must_rm_dir() {
+	util_get_file "$1"; local dir="$REPLY"
+
+	if [ -d "$dir" ]; then
+		if rmdir "$dir"; then
+			printf '%s\n' "$dir REMOVED"
+		fi
+	fi
 }
 
 # ensure directory exists
 must_dir() {
-	[ -d "$1" ] || {
+	if [ ! -d "$1" ]; then
 		mkdir -p "$1"
-		[ "${1: -1}" != / ] && set -- "$1/"
-		echo "'$1' CREATED"
-	}
+		if [ "${1: -1}" != / ]; then
+			set -- "$1/"
+		fi
+		printf '%s\n' "'$1' CREATED"
+	fi
 }
 
 # ensure file exists
 must_file() {
-	[ -d "$(dirname "$1")" ] || mkdir -p "$(dirname "$1")"
-	[ -f "$1" ] || {
+	if [ ! -f "$1" ]; then
 		touch "$1"
-		echo "'$1' CREATED"
-    	}
+		printf '%s\n' "'$1' CREATED"
+	fi
 }
 
 # ensure a symlink points to a particular directory
 must_link() {
-	src="$(util_get_file "$1")"
-	link="$(util_get_file "$2")"
+	util_get_file "$1"; local src="$REPLY"
+	util_get_file "$2"; local link="$REPLY"
 
 	if [ -L "$link" ]; then
-		[ "$(readlink "$link")" != "$src" ] && {
-			ln -sfT "$src" "$link" && echo "$link RE-SYMLINKED TO $src"
-		}
+		if [ "$(readlink "$link")" != "$src" ]; then
+			if ln -sfT "$src" "$link"; then
+				printf '%s\n' "$link RE-SYMLINKED TO $src"
+			else
+				printf '%s\n' "FAILED must_link $link"
+			fi
+		fi
 	else
 		if [ -d "$link" ]; then
 			rmdir "$link"
 		fi
-		ln -sT "$src" "$link" && echo "$link SYMLINKED TO $src"
+
+		if ln -sT "$src" "$link"; then
+			printf '%s\n' "$link SYMLINKED TO $src"
+		else
+			printf '%s\n' "FAILED must_link $link"
+		fi
 	fi
 }
 
@@ -61,6 +85,7 @@ must_rm .flutter
 must_rm .flutter_tool_state
 must_rm .gitconfig
 must_rm .gmrun_history
+must_rm .inputrc
 must_rm .lesshst
 must_rm .mkshrc
 must_rm .pulse-cookie
@@ -74,11 +99,14 @@ must_rm .zshrc
 must_rm .zprofile
 must_rm .zcompdump
 must_rm "$XDG_CONFIG_HOME/zsh/.zcompdump"
+must_rm_dir Desktop
+must_rm_dir Documents
+must_rm_dir Pictures
+must_rm_dir Videos
 
 # check to see if these directories exist (they shouldn't)
 check_dot .elementary
 check_dot .ghc # fixed in later releases
-check_dot .gnupg
 check_dot .npm
 check_dot .old # used in bootstrap.sh
 check_dot .profile-tmp # used in pre-bootstrap.sh
@@ -92,7 +120,7 @@ check_bin exa
 check_bin rsync
 
 # for programs that require a directory to exists before using it
-must_dir "$HOME/.history"
+must_dir "$XDG_STATE_HOME/history"
 must_dir "$XDG_DATA_HOME/maven"
 must_dir "$XDG_DATA_HOME"/vim/{undo,swap,backup}
 must_dir "$XDG_DATA_HOME"/nano/backups
@@ -104,19 +132,30 @@ must_dir "$XDG_CONFIG_HOME/sage" # $DOT_SAGE
 must_dir "$XDG_DATA_HOME/gq/gq-state" # $GQ_STATE
 must_dir "$XDG_DATA_HOME/sonarlint" # $SONARLINT_USER_HOME
 must_file "$XDG_CONFIG_HOME/yarn/config"
+must_file "$XDG_DATA_HOME/tig/history"
 
 # automatically set up links (not covered by dotty since it is a data file)
-must_link "$XDG_DATA_HOME/tig/history" "$HOME/.history/tig_history"
-for dir in Dls Docs Music Pics Vids .hidden; do
-	must_link "/storage/edwin/$dir" "$HOME/$dir"
-done
+must_link /storage/edwin/Dls ~/Dls
+must_link /storage/edwin/Docs ~/Docs
+must_link /storage/edwin/Music ~/Music
+must_link /storage/edwin/Pics ~/Pics
+must_link /storage/edwin/Vids ~/Vids
+must_link "$XDG_DATA_HOME/tig/history" "$XDG_STATE_HOME/history/tig_history" # TODO
 must_link ~/Docs/Programming/repos ~/repos
 must_link ~/Docs/Programming/projects ~/projects
 must_link ~/Docs/Programming/workspaces ~/workspaces
+must_link /storage/data/BraveSoftware "$XDG_CONFIG_HOME/BraveSoftware"
+must_link /storage/data/calcurse "$XDG_DATA_HOME/calcurse"
+must_link /storage/data/fonts "$XDG_DATA_HOME/fonts"
+must_link /storage/data/mozilla "$HOME/.mozilla"
+must_link /storage/data/ssh "$HOME/.ssh"
+must_link /storage/vault/rodinia/Steam "$XDG_DATA_HOME/Steam"
 
 # vscode save extensions
 exts="$(code --list-extensions)"
-[[ $(wc -l <<< "$exts") -gt 5 ]] && cat <<< "$exts" > ~/.dots/state/vscode-extensions.txt
+if [[ $(wc -l <<< "$exts") -gt 10 ]]; then
+	cat <<< "$exts" > ~/.dots/state/vscode-extensions.txt
+fi
 
 "${XDG_CONFIG_HOME:-$HOME/.config}/shell/scripts/generate-local-shellrcs.sh"
 "${XDG_CONFIG_HOME:-$HOME/.config}/shell/scripts/generate-remote-shellrcs.sh"
@@ -125,17 +164,3 @@ exts="$(code --list-extensions)"
 if ! [ "$(curl -LsSo- https://edwin.dev)" = "Hello World" ]; then
 		printf '%s\n' "https://edwin.dev OPEN"
 fi
-# shopt -q dotglob && was_set=yes
-# shopt -u dotglob
-# for dir in /storage/edwin/*; do
-# 	dir="${dir##*/}"
-# 	ln -sT "/storage/data/$dir" "$HOME/$dir"
-# done
-# [ "$was_set" = "yes" ] && shopt -s dotglob
-
-# ln -sT /storage/data/BraveSoftware "$XDG_CONFIG_HOME/BraveSoftware"
-# ln -sT /storage/data/fonts "$XDG_DATA_HOME/fonts"
-# ln -sT /storage/data/gnupg "$XDG_DATA_HOME/gnupg"
-# ln -sT /storage/data/ssh ~/.ssh
-# ln -sT /storage/vault/rodinia/Steam "$XDG_DATA_HOME/Steam"
-# ln -sT /storage/data/mozilla/ ~/.mozilla
