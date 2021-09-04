@@ -25,3 +25,4 @@ Prerequisites
 ## TODO
 
 - stevemao/awesome-git-addons
+- many install_modules pipe to bash - do not do this, use intermediary file
