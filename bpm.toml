@@ -1,5 +1,4 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2034
 
-binDir = [ './pkg/bin/dots' ]
-
+binDirs = [ './pkg/bin' ]
