@@ -1,5 +1,7 @@
 # dots-bootstrap
 
+Note: This repository has been archived since the code has been integrated in [hyperupcall/dots](https://github.com/hyperupcall/dots)
+
 Scripts to bootstrap a fresh operating system and install my dotfiles
 
 ## Summary
